@@ -68,7 +68,6 @@ var Game = React.createClass({
     render: function(){
         return (
             <div>
-                <div>(If arrow keys aren't working, click here to activate this window)</div>
                 <div>(All puzzles except the first are by David Skinner)</div>
                 <h3>Level {this.state.currentLevel + 1}</h3>
                 <button onClick={this.prevLevel} disabled={this.state.currentLevel <= 0}>Previous Level</button>
@@ -95,14 +94,16 @@ var Level = React.createClass({
             initialBoxList: [{x:1,y:1}], // sample/test value
             initialPlayer: {x:2,y:2}, // sample/test value
             scale: 40,
-            stepSize: 6
+            stepSize: 6,
+            levelId: null
         };
     },
     getInitialState: function(){
         return {
             player: $.extend({}, this.props.initialPlayer), // clone object to avoid changing initial props
             boxList: $.extend(true, [], this.props.initialBoxList), // deep clone array of objects to avoid changing initial props
-            moves: 0
+            moves: 0,
+            editMode: false
         }; 
     },
     getVictoryStatus: function(){ // true when there is a box at every target
@@ -112,6 +113,15 @@ var Level = React.createClass({
     },
     render: function(){
         var k = this.props.scale;
+        var editGrid = [];
+        if (this.state.editMode){
+            for (var i = 0; i < 20; i ++){
+                for (var j = 0; j < 20; j++){
+                    editGrid.push(<EditSector x={i} y={j} scale={k} key={'edit.'+i+'.'+j} onEditSectorClick={this.handleEditSectorClick} />);
+                }
+            }
+        }
+
         var walls = this.props.wallList.map(function(wall, i){
             return <rect x={wall.x*k} y={wall.y*k} width={k} height={k} fill='silver' stroke='grey' key={'wall-'+i} />;        
         });
@@ -130,8 +140,7 @@ var Level = React.createClass({
             }
             return <rect x={box.x*k} y={box.y*k} width={k} height={k} fill={'hsl('+hue+',70%,50%)'}
                        stroke={'hsl('+hue+',50%,25%)'} className={className}
-                       key={'box-'+i} ref={'x'+box.x+'y'+box.y}
-                   />;        
+                       key={'box-'+i} ref={'x'+box.x+'y'+box.y} />;        
         }.bind(this));
         var targets = this.props.targetList.map(function(target, i){
             return <circle cx={(target.x+0.5)*k} cy={(target.y+0.5)*k} r={k/4} fill='cornFlowerBlue' key={'target-'+i} />;        
@@ -139,31 +148,37 @@ var Level = React.createClass({
         var player = (<g>
             <circle cx={(this.state.player.x+0.5)*k} cy={(this.state.player.y+0.5)*k} r={k/2} data-shape-set='player'
                 fill='yellow' stroke='black' strokeWidth={2} className='player'
-                ref={'x' + this.state.player.x + 'y'+this.state.player.y}
-            />
+                ref={'x' + this.state.player.x + 'y'+this.state.player.y} />
             <circle cx={(this.state.player.x+0.5)*k} cy={(this.state.player.y+0.5)*k} r={k/8} 
-                fill='black' transform={'translate(' + (-0.25)*k + ',' + (-0.125)*k + ')'} data-shape-set='player'
-            />
+                fill='black' transform={'translate(' + (-0.25)*k + ',' + (-0.125)*k + ')'} data-shape-set='player' />
             <circle cx={(this.state.player.x+0.5)*k} cy={(this.state.player.y+0.5)*k} r={k/8} 
-                fill='black' transform={'translate(' + (0.25)*k + ',' + (-0.125)*k + ')'} data-shape-set='player'
-            />
+                fill='black' transform={'translate(' + (0.25)*k + ',' + (-0.125)*k + ')'} data-shape-set='player' />
         </g>);
         
         // get svg dimensions that will fit all objects
         var allObjects = this.props.wallList.concat(this.props.initialBoxList.concat(this.props.targetList));
         allObjects.push(this.props.initialPlayer);        
-        var maxX = Math.max.apply(null, _.pluck(allObjects, 'x')) + 1;
-        var maxY = Math.max.apply(null, _.pluck(allObjects, 'y')) + 1;
+        var maxX = (this.state.editMode? 20: Math.max.apply(null, _.pluck(allObjects, 'x')) + 1);
+        var maxY = (this.state.editMode? 20: Math.max.apply(null, _.pluck(allObjects, 'y')) + 1);
         
         // time to render!
         return (
             <div>
                 <svg width={maxX*k} height={maxY*k}>
-                    {walls}{targets}{boxes}{player}                    
+                    {walls}{targets}{boxes}{player}{editGrid}                    
                 </svg><br/>
-                <span>Moves: {this.state.moves}</span>
-                <button onClick={this.handleUndoClick} disabled={this.prevStates.length == 0 || this.state.moves == 0}>Undo</button>
-                <button onClick={this.handleResetClick} disabled={this.state.moves == 0}>Reset</button>
+                {this.state.editMode?
+                <select onChange={this.handleEditSelect} ref='edit'>
+                    <option value='Wall'>Wall</option>
+                    <option value='Box'>Box</option>
+                    <option value='Target'>Target</option>
+                    <option value='Player'>Player</option>
+                </select>
+                :<span>Moves: {this.state.moves}
+                    <button onClick={this.handleUndoClick} disabled={this.prevStates.length == 0 || this.state.moves == 0}>Undo</button>
+                    <button onClick={this.handleResetClick} disabled={this.state.moves == 0}>Reset</button>
+                </span>}
+                <button onClick={this.handleEditClick}>{this.state.editMode? 'Exit Edit Mode': 'Edit Level!'}</button>
                 <h2 style={{color: 'RoyalBlue'}}>{this.getVictoryStatus()? 'Victory!': ''}</h2>
             </div>
         );
@@ -200,6 +215,10 @@ var Level = React.createClass({
         }.bind(this);
     },
     moveAndUpdateState: function(axis, dir){
+        if (this.state.editMode){
+            return;
+        }
+
         if (!this.canMove(this.state.player, axis, dir)){
             return;
         }
@@ -314,6 +333,65 @@ var Level = React.createClass({
         this.setState($.extend(true, {}, _.last(this.prevStates)), function(){
             this.prevStates.pop();
         }.bind(this));
+    },
+    handleEditClick: function(){
+        this.setState({ editMode: !this.state.editMode, moves: 0 });
+    },
+    handleEditSelect: function(e){
+        this.setState({ editMode: this.refs.edit.getDOMNode().value });
+    },
+    handleEditSectorClick: function(e){
+        console.log(e);
+        var self = this;
+        switch (this.state.editMode){
+            case 'Box':
+                var newBoxList = $.extend(true, [], this.state.boxList);                 
+                if (typeof _.findWhere(newBoxList, e) != 'undefined'){
+                    this.setState({ boxList: _.reject(
+                        newBoxList,
+                        function(box){
+                            return (box.x==e.x && box.y==e.y);
+                        })
+                    });
+                } else {
+                    newBoxList.push({x: e.x, y: e.y });
+                    this.setState({ boxList: newBoxList });
+                }
+                break;
+            case 'Target':
+                break;
+            case 'Player':
+                this.setState({ player: { x: e.x, y: e.y }});
+                break;
+            case true: case 'Wall':
+                /*var newWallList = $.extend(true, [], this.props.wallList);                 
+                if (typeof _.findWhere(newWallList, e) != 'undefined'){
+                    this.setState({ wallList: _.reject(
+                        newBoxList,
+                        function(box){
+                            return (box.x==e.x && box.y==e.y);
+                        })
+                    });
+                } else {
+                    newBoxList.push({x: e.x, y: e.y });
+                    this.setState({ boxList: newBoxList });
+                }*/
+                break;
+        }
+    }
+});
+
+var EditSector = React.createClass({
+    getDefaultProps: function(){
+        return { onEditSectorClick: function(){} };
+    },
+    render: function(){
+        var k = this.props.scale;
+        return <rect x={this.props.x*k} y={this.props.y*k} width={k} height={k} key={'edit.'+this.props.x+'.'+this.props.y} stroke='grey' fillOpacity={0}
+                onClick={this.handleClick} />;
+    },
+    handleClick: function(){
+        this.props.onEditSectorClick({ x: this.props.x, y: this.props.y });
     }
 });
 
