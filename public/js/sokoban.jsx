@@ -101,7 +101,6 @@ var Game = React.createClass({
         console.log(this.state);
         return (
             <div>
-                <div>(Most of these puzzles are by David Skinner)</div>
                 <h3>Level {this.state.currentLevel + 1}</h3>
                 <button onClick={this.prevLevel} disabled={this.state.currentLevel <= 0}>Previous Level</button>
                 <button onClick={this.nextLevel} disabled={this.state.currentLevel >= this.state.levels.length - 1}>Next Level</button>
@@ -130,13 +129,37 @@ var Game = React.createClass({
         this.setState({ currentLevel: this.state.currentLevel + 1 });
     },
     createLevel: function(){
-        var newLevels = this.state.levels;
+        /*var newLevels = this.state.levels;
         newLevels.push({ initialPlayer: { x:3, y: 3}, initialBoxList: [], initialTargetList: [], initialWallList: [] });
         var newLevelIndex = newLevels.length - 1;
-        this.setState({ levels: newLevels, currentLevel: newLevelIndex });
+        this.setState({ levels: newLevels, currentLevel: newLevelIndex });*/
+
+        var body = {
+            _id: '000000000000',
+            level: {
+                initialPlayer: { x:3, y: 3}, initialBoxList: [], initialTargetList: [], initialWallList: []
+            }
+        };
+        $.ajax({
+            url: '/level',
+            contentType: 'application/json',
+            type: 'POST',
+            data: JSON.stringify(body),
+            success: function(resp){
+                var newLevelIndex = resp.length - 1;
+                this.setState({ currentLevel: newLevelIndex, levels: resp });
+            }.bind(this),
+            error: function(xhr, status, err){
+                console.log(err);
+            }
+        });
     },
     handleLevelSave: function(levels){
-        this.setState({ levels: levels });
+        var newLevelIndex = this.state.currentLevel;
+        if (newLevelIndex >= levels.length){
+            newLevelIndex = levels.length - 1;
+        }
+        this.setState({ currentLevel: newLevelIndex, levels: levels });
     }
 });
 
@@ -166,7 +189,7 @@ var Level = React.createClass({
         }; 
     },
     getVictoryStatus: function(){ // true when there is a box at every target
-        return _.every(this.state.targetList, function(target){
+        return !this.state.editMode && _.every(this.state.targetList, function(target){
             return (typeof _.findWhere(this.state.boxList, target) !== 'undefined');           
         }.bind(this));
     },
@@ -229,7 +252,11 @@ var Level = React.createClass({
                     {walls}{targets}{boxes}{player}{editGrid}                    
                 </svg><br/>
                 {this.state.editMode?
-                <span>'Left-click to change tile. Right-click to place player.'<button onClick={this.handleSaveClick}>Save Level</button></span>
+                <span>
+                    'Left-click to change tile. Right-click to place player.'
+                    <button onClick={this.handleSaveClick}>Save Level</button>
+                    {this.props._id == '000000000000'? '': <button onClick={this.handleDeleteClick}>Delete Level</button>}
+                </span>
                 :<span>Moves: {this.state.moves}
                     <button onClick={this.handleUndoClick} disabled={this.prevStates.length == 0 || this.state.moves == 0}>Undo</button>
                     <button onClick={this.handleResetClick} disabled={this.state.moves == 0}>Reset</button>
@@ -451,13 +478,29 @@ var Level = React.createClass({
                 initialWallList: this.state.wallList
             }
         };
-        console.log(body);
         $.ajax({
             url: '/level',
-            //dataType: 'json',
             contentType: 'application/json',
             type: 'POST',
             data: JSON.stringify(body),
+            success: function(resp){
+                this.props.onLevelSave(resp);
+            }.bind(this),
+            error: function(xhr, status, err){
+                console.log(err);
+            }
+        });
+    },
+    handleDeleteClick: function(){
+        if (!confirm('Deleting this level is permanent. Click "OK" to continue deletion.')){
+            return;
+        }
+
+        $.ajax({
+            url: '/level/delete',
+            contentType: 'application/json',
+            type: 'POST',
+            data: JSON.stringify({ _id: this.props._id }),
             success: function(resp){
                 this.props.onLevelSave(resp);
             }.bind(this),
@@ -486,6 +529,6 @@ var EditSector = React.createClass({
     }
 });
 
-React.renderComponent(<Game />, document.body);
+React.renderComponent(<Game />, document.getElementById('app'));
 
 

@@ -21,20 +21,34 @@ mongodb.MongoClient.connect(MONGOLAB_URI, function(err, db){
 	app.get('/levels', function(req, res){
 		res.setHeader('Content-Type', 'application/json');
 		levels.find().sort({ _id: 1 }).toArray(function(err, docs){
-			res.send(JSON.stringify(docs));
+			res.status(200).send(JSON.stringify(docs));
 		});
 	});
 	
 	app.get('/level', function(req, res){
 	    res.setHeader('Content-Type', 'application/json');
 		levels.find(ObjectID(req.query.id)).sort({ _id: 1 }).toArray(function(err, docs){
-			res.send(JSON.stringify(docs[0]));
+			res.status(200).send(JSON.stringify(docs[0]));
 		});	
+	});
+	
+	app.post('/level/delete', function(req, res){
+	    res.setHeader('Content-Type', 'application/json');		
+		levels.remove(
+			{ _id: ObjectID(req.body._id) },
+			{ justOne: true },
+			function(err, result, details){
+				if (err) throw err;
+				levels.find().sort({ _id: 1 }).toArray(function(err, docs){
+					if (err) throw err;
+					res.status(200).send(JSON.stringify(docs));
+				});
+			}
+		);
 	});
 	
 	app.post('/level', function(req, res) {
 		res.setHeader('Content-Type', 'application/json');
-		//console.log(req.body);
 		levels.update(
 			{ _id: ObjectID(req.body._id) },
 			req.body.level, 
