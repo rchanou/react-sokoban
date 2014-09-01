@@ -156,10 +156,10 @@ var Level = React.createClass({
         </g>);
         
         // get svg dimensions that will fit all objects
-        var allObjects = this.props.wallList.concat(this.props.initialBoxList.concat(this.props.targetList));
-        allObjects.push(this.props.initialPlayer);        
-        var maxX = (this.state.editMode? 20: Math.max.apply(null, _.pluck(allObjects, 'x')) + 1);
-        var maxY = (this.state.editMode? 20: Math.max.apply(null, _.pluck(allObjects, 'y')) + 1);
+        var allObjects = this.props.wallList.concat(this.state.boxList.concat(this.props.targetList));
+        allObjects.push(this.state.player);        
+        var maxX = (this.state.editMode? 20: (Math.max.apply(null, _.pluck(allObjects, 'x')) + 1));
+        var maxY = (this.state.editMode? 20: (Math.max.apply(null, _.pluck(allObjects, 'y')) + 1));
         
         // time to render!
         return (
