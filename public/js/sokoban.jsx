@@ -101,7 +101,7 @@ var Game = React.createClass({
         console.log(this.state);
         return (
             <div>
-                <div>(All puzzles except the first are by David Skinner)</div>
+                <div>(Most of these puzzles are by David Skinner)</div>
                 <h3>Level {this.state.currentLevel + 1}</h3>
                 <button onClick={this.prevLevel} disabled={this.state.currentLevel <= 0}>Previous Level</button>
                 <button onClick={this.nextLevel} disabled={this.state.currentLevel >= this.state.levels.length - 1}>Next Level</button>
@@ -391,10 +391,10 @@ var Level = React.createClass({
         }.bind(this));
     },
     handleEditClick: function(){
-        this.setState({ editMode: !this.state.editMode, moves: 0 });
-    },
-    handleEditSelect: function(e){
-        this.setState({ editMode: this.refs.edit.getDOMNode().value });
+        var editState = this.getInitialState();
+        editState.editMode = !this.state.editMode;
+        this.setState(editState);
+        //this.setState({ editMode: !this.state.editMode, moves: 0 });
     },
     handleEditSectorClick: function(e){
         var self = this;
@@ -439,7 +439,7 @@ var Level = React.createClass({
         }
     },
     handleEditSectorRightClick: function(e){
-        this.setState({ player: e });
+        this.setState({player: e });
     },
     handleSaveClick: function(){
         var body = {
