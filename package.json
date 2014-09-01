@@ -4,6 +4,7 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
+    "node": "0.10.31",
     "express": "4.8.7"
   }
 }
