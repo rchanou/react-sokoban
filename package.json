@@ -5,9 +5,27 @@
   "private": true,
   "main": "app.js",
   "scripts": {
-	"start": "node app.js"
+    "start": "node app.js"
   },
   "dependencies": {
     "express": "4.8.7"
-  }
+  },
+  "engines": {
+    "node": "0.10.x"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rchanou/react-sokoban"
+  },
+  "keywords": [
+    "react",
+    "sokoban"
+  ],
+  "author": "Ronald Chanou",
+  "license": "Apache",
+  "bugs": {
+    "url": "https://github.com/rchanou/react-sokoban/issues"
+  },
+  "homepage": "https://github.com/rchanou/react-sokoban"
 }
