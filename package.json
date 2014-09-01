@@ -1,0 +1,9 @@
+{
+  "name": "react-sokoban",
+  "description": "The classic puzzle game Sokoban written using the React JavaScript library for building UIs.",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "express": "4.8.7"
+  }
+}
