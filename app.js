@@ -34,16 +34,18 @@ mongodb.MongoClient.connect(MONGOLAB_URI, function(err, db){
 	
 	app.post('/level', function(req, res) {
 		res.setHeader('Content-Type', 'application/json');
-
+		//console.log(req.body);
 		levels.update(
 			{ _id: ObjectID(req.body._id) },
 			req.body.level, 
 			{ upsert: true },
-			function(err, result){
+			function(err, result, details){
 				if (err) throw err;
-				levels.find(ObjectID(req.body._id)).toArray(function(err, docs){
+				console.log(details);
+				levels.find().toArray(function(err, docs){
 					if (err) throw err;
-					res.send(JSON.stringify(docs));
+					res.status(201).send(JSON.stringify(docs));
+					//res.send(JSON.stringify(docs));
 				});
 			}
 		);

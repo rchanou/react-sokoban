@@ -32,50 +32,96 @@ var Game = React.createClass({
         ]};
     },
     getInitialState: function(){
-        return { currentLevel: 0 };
+        return { currentLevel: 0,
+            levels: [{ initialPlayer: {x:0, y: 0}, initialBoxList:[], initialTargetList: [], initialWallList: [] }]
+        };
     },
     loadCurrentLevel: function(){ // convert level map to Level React component
-        var props = { initialWallList: [], initialTargetList: [], initialBoxList: [], initialPlayer: {}, key: this.state.currentLevel };
-        var currentLevelMap = this.props.levelMaps[this.state.currentLevel];
-        currentLevelMap.forEach(function(rowString, i){
-            for (var j = 0; j < rowString.length; j++){
-                switch (rowString[j].toLowerCase()){
-                    case 'p': { // player
-                        props.initialPlayer = { y: i, x: j };
-                        break;
+        if (_.isArray(this.state.levels[this.state.currentLevel])){
+            var props = { initialWallList: [], initialTargetList: [], initialBoxList: [], initialPlayer: {}, key: this.state.currentLevel };
+            var currentLevelMap = this.state.levels[this.state.currentLevel];
+            currentLevelMap.forEach(function(rowString, i){
+                for (var j = 0; j < rowString.length; j++){
+                    switch (rowString[j].toLowerCase()){
+                        case 'p': { // player
+                            props.initialPlayer = { y: i, x: j };
+                            break;
+                        }
+                        case 't': { // target
+                            props.initialTargetList.push({y: i, x: j});
+                            break;
+                        }
+                        case 'b': { // box
+                            props.initialBoxList.push({y: i, x: j});
+                            break;
+                        }
+                        case 'x': case 'w': { // wall
+                            props.initialWallList.push({y: i, x: j});
+                            break;
+                        }
+                        case '*': { // both target and box on same spot
+                            props.initialTargetList.push({y: i, x: j});
+                            props.initialBoxList.push({y: i, x: j});
+                        }                    
                     }
-                    case 't': { // target
-                        props.initialTargetList.push({y: i, x: j});
-                        break;
-                    }
-                    case 'b': { // box
-                        props.initialBoxList.push({y: i, x: j});
-                        break;
-                    }
-                    case 'x': case 'w': { // wall
-                        props.initialWallList.push({y: i, x: j});
-                        break;
-                    }
-                    case '*': { // both target and box on same spot
-                        state.targetList.push({y: i, x: j});
-                        props.initialBoxList.push({y: i, x: j});
-                    }                    
                 }
+            });
+            return Level(props);
+        }
+        var rawProps = this.state.levels[this.state.currentLevel];
+        //var props = {};
+        //props.initialPlayer = {x: parseInt(rawProps.initialPlayer.x), y: parseInt(rawProps.initialPlayer.y) };
+
+        //props.initialPlayer.y = parseInt(rawProps.initialPlayer.y);
+
+        //props.key = Math.random();
+
+        /*for (var propName in props){
+            console.log(propName);
+            if(_.isArray(props[propName])){
+                props[propName].forEach(function(item){
+                    item = { x:parseInt(item.x), y: parseInt(item.y) };
+                });
             }
+        }*/
+
+        return <Level initialPlayer={{x: parseInt(rawProps.initialPlayer.x), y: parseInt(rawProps.initialPlayer.y) }}
+            initialBoxList={this.parseCoordsToInts(rawProps.initialBoxList)}
+            initialTargetList={this.parseCoordsToInts(rawProps.initialTargetList)}
+            initialWallList={this.parseCoordsToInts(rawProps.initialWallList)}
+            key={Math.random()} _id={rawProps._id}
+            onLevelSave={this.handleLevelSave} />
+    },
+    parseCoordsToInts: function(list){
+        return list.map(function(coord){
+            return { x: parseInt(coord.x), y: parseInt(coord.y) };
         });
-        return Level(props);
     },
     render: function(){
+        console.log(this.state);
         return (
             <div>
                 <div>(All puzzles except the first are by David Skinner)</div>
                 <h3>Level {this.state.currentLevel + 1}</h3>
                 <button onClick={this.prevLevel} disabled={this.state.currentLevel <= 0}>Previous Level</button>
-                <button onClick={this.nextLevel} disabled={this.state.currentLevel >= this.props.levelMaps.length - 1}>Next Level</button>
+                <button onClick={this.nextLevel} disabled={this.state.currentLevel >= this.state.levels.length - 1}>Next Level</button>
                 <button onClick={this.createLevel}>Create New Level</button>
                 {this.loadCurrentLevel()}
             </div>
         );
+    },
+    componentWillMount: function(){
+        /*$.get('/levels', function(resp){
+            this.setState({ levels: resp });
+        }.bind(this));*/
+        $.ajax({
+            url: '/levels',
+            dataType: 'json',
+            success: function(resp){
+                this.setState({ levels: resp });
+                //this.setState({ levels: this.props.levelMaps.concat(resp) });
+            }.bind(this)
+        });
     },
     prevLevel: function(){
         this.setState({ currentLevel: this.state.currentLevel - 1 });
@@ -84,7 +130,13 @@ var Game = React.createClass({
         this.setState({ currentLevel: this.state.currentLevel + 1 });
     },
     createLevel: function(){
-        console.log('load blank level');
+        var newLevels = this.state.levels;
+        newLevels.push({ initialPlayer: { x:3, y: 3}, initialBoxList: [], initialTargetList: [], initialWallList: [] });
+        var newLevelIndex = newLevels.length - 1;
+        this.setState({ levels: newLevels, currentLevel: newLevelIndex });
+    },
+    handleLevelSave: function(levels){
+        this.setState({ levels: levels });
     }
 });
 
@@ -99,7 +151,8 @@ var Level = React.createClass({
             initialPlayer: {x:2,y:2}, // sample/test value
             scale: 40,
             stepSize: 6,
-            levelId: null
+            _id: '000000000000',
+            onLevelSave: function(){}
         };
     },
     getInitialState: function(){
@@ -109,7 +162,7 @@ var Level = React.createClass({
             targetList: $.extend(true, [], this.props.initialTargetList),
             boxList: $.extend(true, [], this.props.initialBoxList), // deep clone array of objects to avoid changing initial props
             moves: 0,
-            editMode: false
+            editMode: (this.props.initialTargetList.length == 0)
         }; 
     },
     getVictoryStatus: function(){ // true when there is a box at every target
@@ -118,6 +171,7 @@ var Level = React.createClass({
         }.bind(this));
     },
     render: function(){
+        console.log(this.props);
         var k = this.props.scale;
         var editGrid = [];
         if (this.state.editMode){
@@ -358,15 +412,20 @@ var Level = React.createClass({
             newBoxList.push(e);
             this.setState({ boxList: newBoxList, wallList: newWallList });
         } else if (typeof _.findWhere(newBoxList, e) != 'undefined'){
-            newBoxList = _.reject(
-                newBoxList,
-                function(box){
-                    return (box.x==e.x && box.y==e.y);
-                }
-            );
-            newTargetList.push({x: e.x, y: e.y });
-            this.setState({ boxList: newBoxList, targetList: newTargetList });
-        } else if (typeof _.findWhere(newTargetList, e) != 'undefined'){
+            if (typeof _.findWhere(newTargetList, e) == 'undefined'){
+                newTargetList.push(e);
+                this.setState({ targetList: newTargetList });
+            } else {
+                newBoxList = _.reject(
+                    newBoxList,
+                    function(box){
+                        return (box.x==e.x && box.y==e.y);
+                    }
+                );
+                this.setState({ boxList: newBoxList });
+                //newBoxList.push(e);
+            }
+        } else if (typeof _.findWhere(newTargetList, e) != 'undefined'){            
             newTargetList = _.reject(
                 newTargetList,
                 function(target){
@@ -383,23 +442,25 @@ var Level = React.createClass({
         this.setState({ player: e });
     },
     handleSaveClick: function(){
-        console.log('save');
+        var body = {
+            _id: this.props._id,
+            level: {
+                initialPlayer: this.state.player,
+                initialBoxList: this.state.boxList,
+                initialTargetList: this.state.targetList,
+                initialWallList: this.state.wallList
+            }
+        };
+        console.log(body);
         $.ajax({
             url: '/level',
-            dataType: 'json',
+            //dataType: 'json',
+            contentType: 'application/json',
             type: 'POST',
-            data: {
-                _id: '54042acd508794e028e2d80e',
-                level: {
-                    initialPlayer: this.state.player,
-                    initialBoxList: this.state.boxList,
-                    initialTargetList: this.state.targetList,
-                    initialWallList: this.state.wallList
-                }
-            },
+            data: JSON.stringify(body),
             success: function(resp){
-                console.log(resp);
-            },
+                this.props.onLevelSave(resp);
+            }.bind(this),
             error: function(xhr, status, err){
                 console.log(err);
             }

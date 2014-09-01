@@ -1,0 +1,42 @@
+@-webkit-keyframes webkitflashingStroke {
+  from {
+    stroke-opacity: 1;
+    fill-opacity: 1;
+  }
+  50% {
+    stroke-opacity: 0.5;
+    fill-opacity: 0.5;
+  }
+  to {
+    stroke-opacity: 1;
+    fill-opacity: 1;
+  }
+}
+
+@keyframes flashingStroke {
+  from {
+    stroke-opacity: 1;
+    fill-opacity: 1;
+  }
+  50% {
+    stroke-opacity: 0.5;
+    fill-opacity: 0.5;
+  }
+  to {
+    stroke-opacity: 1;
+    fill-opacity: 1;
+  }
+}
+
+.on-target {
+    -webkit-animation-name: webkitflashingStroke;
+    -webkit-animation-duration: 1.5s;
+    -webkit-animation-iteration-count: infinite;
+    animation-name: flashingStroke;
+    animation-duration: 1.5s;
+    animation-iteration-count: infinite;
+}
+
+body {
+    font-family: sans-serif;
+}
