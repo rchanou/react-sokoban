@@ -35,7 +35,7 @@ var Game = React.createClass({
         return { currentLevel: 0 };
     },
     loadCurrentLevel: function(){ // convert level map to Level React component
-        var props = { initialWallList: [], targetList: [], initialBoxList: [], initialPlayer: {}, key: this.state.currentLevel };
+        var props = { initialWallList: [], initialTargetList: [], initialBoxList: [], initialPlayer: {}, key: this.state.currentLevel };
         var currentLevelMap = this.props.levelMaps[this.state.currentLevel];
         currentLevelMap.forEach(function(rowString, i){
             for (var j = 0; j < rowString.length; j++){
@@ -45,7 +45,7 @@ var Game = React.createClass({
                         break;
                     }
                     case 't': { // target
-                        props.targetList.push({y: i, x: j});
+                        props.initialTargetList.push({y: i, x: j});
                         break;
                     }
                     case 'b': { // box
@@ -57,7 +57,7 @@ var Game = React.createClass({
                         break;
                     }
                     case '*': { // both target and box on same spot
-                        props.targetList.push({y: i, x: j});
+                        state.targetList.push({y: i, x: j});
                         props.initialBoxList.push({y: i, x: j});
                     }                    
                 }
@@ -72,6 +72,7 @@ var Game = React.createClass({
                 <h3>Level {this.state.currentLevel + 1}</h3>
                 <button onClick={this.prevLevel} disabled={this.state.currentLevel <= 0}>Previous Level</button>
                 <button onClick={this.nextLevel} disabled={this.state.currentLevel >= this.props.levelMaps.length - 1}>Next Level</button>
+                <button onClick={this.createLevel}>Create New Level</button>
                 {this.loadCurrentLevel()}
             </div>
         );
@@ -81,6 +82,9 @@ var Game = React.createClass({
     },
     nextLevel: function(){
         this.setState({ currentLevel: this.state.currentLevel + 1 });
+    },
+    createLevel: function(){
+        console.log('load blank level');
     }
 });
 
@@ -89,8 +93,8 @@ var Level = React.createClass({
     animHandle: null, // handler for requestAnimationFrame
     getDefaultProps: function(){
         return {
-            wallList: [{x:0,y:0},{x:3,y:3},{x:0,y:2}], // sample/test value
-            targetList: [{x:1,y:2}], // sample/test value
+            initialWallList: [{x:0,y:0},{x:3,y:3},{x:0,y:2}], // sample/test value
+            initialTargetList: [{x:1,y:2}], // sample/test value
             initialBoxList: [{x:1,y:1}], // sample/test value
             initialPlayer: {x:2,y:2}, // sample/test value
             scale: 40,
@@ -102,13 +106,14 @@ var Level = React.createClass({
         return {
             player: $.extend({}, this.props.initialPlayer), // clone object to avoid changing initial props
             wallList: $.extend(true, [], this.props.initialWallList),
+            targetList: $.extend(true, [], this.props.initialTargetList),
             boxList: $.extend(true, [], this.props.initialBoxList), // deep clone array of objects to avoid changing initial props
             moves: 0,
             editMode: false
         }; 
     },
     getVictoryStatus: function(){ // true when there is a box at every target
-        return _.every(this.props.targetList, function(target){
+        return _.every(this.state.targetList, function(target){
             return (typeof _.findWhere(this.state.boxList, target) !== 'undefined');           
         }.bind(this));
     },
@@ -118,7 +123,8 @@ var Level = React.createClass({
         if (this.state.editMode){
             for (var i = 0; i < 20; i ++){
                 for (var j = 0; j < 20; j++){
-                    editGrid.push(<EditSector x={i} y={j} scale={k} key={'edit.'+i+'.'+j} onEditSectorClick={this.handleEditSectorClick} />);
+                    editGrid.push(<EditSector x={i} y={j} scale={k} key={'edit.'+i+'.'+j}
+                        onEditSectorClick={this.handleEditSectorClick} onEditSectorRightClick={this.handleEditSectorRightClick} />);
                 }
             }
         }
@@ -132,7 +138,7 @@ var Level = React.createClass({
             if (this.getVictoryStatus()){
                 hue = 100; // green
                 className = 'on-target';
-            } else if (typeof _.findWhere(this.props.targetList, box) !== 'undefined'){
+            } else if (typeof _.findWhere(this.state.targetList, box) !== 'undefined'){
                 hue = 200; // blue
                 className = 'on-target';
             } else {
@@ -143,7 +149,7 @@ var Level = React.createClass({
                        stroke={'hsl('+hue+',50%,25%)'} className={className}
                        key={'box-'+i} ref={'x'+box.x+'y'+box.y} />;        
         }.bind(this));
-        var targets = this.props.targetList.map(function(target, i){
+        var targets = this.state.targetList.map(function(target, i){
             return <circle cx={(target.x+0.5)*k} cy={(target.y+0.5)*k} r={k/4} fill='cornFlowerBlue' key={'target-'+i} />;        
         });
         var player = (<g>
@@ -157,7 +163,7 @@ var Level = React.createClass({
         </g>);
         
         // get svg dimensions that will fit all objects
-        var allObjects = this.state.wallList.concat(this.state.boxList.concat(this.props.targetList));
+        var allObjects = this.state.wallList.concat(this.state.boxList.concat(this.state.targetList));
         allObjects.push(this.state.player);        
         var maxX = (this.state.editMode? 20: (Math.max.apply(null, _.pluck(allObjects, 'x')) + 1));
         var maxY = (this.state.editMode? 20: (Math.max.apply(null, _.pluck(allObjects, 'y')) + 1));
@@ -169,12 +175,7 @@ var Level = React.createClass({
                     {walls}{targets}{boxes}{player}{editGrid}                    
                 </svg><br/>
                 {this.state.editMode?
-                <select onChange={this.handleEditSelect} ref='edit'>
-                    <option value='Wall'>Wall</option>
-                    <option value='Box'>Box</option>
-                    <option value='Target'>Target</option>
-                    <option value='Player'>Player</option>
-                </select>
+                <span>'Left-click to change tile. Right-click to place player.'<button onClick={this.handleSaveClick}>Save Level</button></span>
                 :<span>Moves: {this.state.moves}
                     <button onClick={this.handleUndoClick} disabled={this.prevStates.length == 0 || this.state.moves == 0}>Undo</button>
                     <button onClick={this.handleResetClick} disabled={this.state.moves == 0}>Reset</button>
@@ -342,48 +343,85 @@ var Level = React.createClass({
         this.setState({ editMode: this.refs.edit.getDOMNode().value });
     },
     handleEditSectorClick: function(e){
-        console.log(e);
         var self = this;
         var newBoxList = $.extend(true, [], this.state.boxList);
         var newWallList = $.extend(true, [], this.state.wallList);
-        //var newBoxList = $.extend(true, [], this.state.boxList);
+        var newTargetList = $.extend(true, [], this.state.targetList);
 
-        if (typeof _.findWhere(newBoxList, e) != 'undefined'){
-            newBoxList = _.reject(
-                newBoxList,
-                function(box){
-                    return (box.x==e.x && box.y==e.y);
-                }
-            );
-            newWallList.push(e);
-            this.setState({ boxList: newBoxList, wallList: newWallList });
-        } else if (typeof _.findWhere(newWallList, e) != 'undefined'){
+        if (typeof _.findWhere(newWallList, e) != 'undefined'){
             newWallList = _.reject(
                 newWallList,
                 function(wall){
                     return (wall.x==e.x && wall.y==e.y);
                 }
             );
-            //newWallList.push({x: e.x, y: e.y });
-            this.setState({ wallList: newWallList });
-        } else {
             newBoxList.push(e);
-            this.setState({ boxList: newBoxList });
+            this.setState({ boxList: newBoxList, wallList: newWallList });
+        } else if (typeof _.findWhere(newBoxList, e) != 'undefined'){
+            newBoxList = _.reject(
+                newBoxList,
+                function(box){
+                    return (box.x==e.x && box.y==e.y);
+                }
+            );
+            newTargetList.push({x: e.x, y: e.y });
+            this.setState({ boxList: newBoxList, targetList: newTargetList });
+        } else if (typeof _.findWhere(newTargetList, e) != 'undefined'){
+            newTargetList = _.reject(
+                newTargetList,
+                function(target){
+                    return (target.x==e.x && target.y==e.y);
+                }
+            );
+            this.setState({ targetList: newTargetList });
+        } else {
+            newWallList.push(e);
+            this.setState({ wallList: newWallList });
         }
+    },
+    handleEditSectorRightClick: function(e){
+        this.setState({ player: e });
+    },
+    handleSaveClick: function(){
+        console.log('save');
+        $.ajax({
+            url: '/level',
+            dataType: 'json',
+            type: 'POST',
+            data: {
+                _id: '54042acd508794e028e2d80e',
+                level: {
+                    initialPlayer: this.state.player,
+                    initialBoxList: this.state.boxList,
+                    initialTargetList: this.state.targetList,
+                    initialWallList: this.state.wallList
+                }
+            },
+            success: function(resp){
+                console.log(resp);
+            },
+            error: function(xhr, status, err){
+                console.log(err);
+            }
+        });
     }
 });
 
 var EditSector = React.createClass({
     getDefaultProps: function(){
-        return { onEditSectorClick: function(){} };
+        return { onEditSectorClick: function(){}, onEditSectorRightClick: function(){} };
     },
     render: function(){
         var k = this.props.scale;
         return <rect x={this.props.x*k} y={this.props.y*k} width={k} height={k} key={'edit.'+this.props.x+'.'+this.props.y} stroke='grey' fillOpacity={0}
-                onClick={this.handleClick} />;
+                onClick={this.handleClick} onContextMenu={this.handleContextMenu} />;
     },
     handleClick: function(){
         this.props.onEditSectorClick({ x: this.props.x, y: this.props.y });
+    },
+    handleContextMenu: function(e){
+        this.props.onEditSectorRightClick({ x: this.props.x, y: this.props.y });
+        return false;
     }
 });
 
