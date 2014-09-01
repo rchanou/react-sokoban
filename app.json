@@ -1,0 +1,7 @@
+{
+  "name": "React Sokoban",
+  "description": "The classic Sokoban written using React",
+  "repository": "https://github.com/rchanou/react-sokoban",
+  "logo": "http://node-js-sample.herokuapp.com/node.svg",
+  "keywords": ["node", "express", "static", "react", "sokoban"]
+}
