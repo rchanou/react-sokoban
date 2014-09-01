@@ -35,7 +35,7 @@ var Game = React.createClass({
         return { currentLevel: 0 };
     },
     loadCurrentLevel: function(){ // convert level map to Level React component
-        var props = { wallList: [], targetList: [], initialBoxList: [], initialPlayer: {}, key: this.state.currentLevel };
+        var props = { initialWallList: [], targetList: [], initialBoxList: [], initialPlayer: {}, key: this.state.currentLevel };
         var currentLevelMap = this.props.levelMaps[this.state.currentLevel];
         currentLevelMap.forEach(function(rowString, i){
             for (var j = 0; j < rowString.length; j++){
@@ -53,7 +53,7 @@ var Game = React.createClass({
                         break;
                     }
                     case 'x': case 'w': { // wall
-                        props.wallList.push({y: i, x: j});
+                        props.initialWallList.push({y: i, x: j});
                         break;
                     }
                     case '*': { // both target and box on same spot
@@ -101,6 +101,7 @@ var Level = React.createClass({
     getInitialState: function(){
         return {
             player: $.extend({}, this.props.initialPlayer), // clone object to avoid changing initial props
+            wallList: $.extend(true, [], this.props.initialWallList),
             boxList: $.extend(true, [], this.props.initialBoxList), // deep clone array of objects to avoid changing initial props
             moves: 0,
             editMode: false
@@ -122,7 +123,7 @@ var Level = React.createClass({
             }
         }
 
-        var walls = this.props.wallList.map(function(wall, i){
+        var walls = this.state.wallList.map(function(wall, i){
             return <rect x={wall.x*k} y={wall.y*k} width={k} height={k} fill='silver' stroke='grey' key={'wall-'+i} />;        
         });
         var boxes = this.state.boxList.map(function(box, i){
@@ -156,7 +157,7 @@ var Level = React.createClass({
         </g>);
         
         // get svg dimensions that will fit all objects
-        var allObjects = this.props.wallList.concat(this.state.boxList.concat(this.props.targetList));
+        var allObjects = this.state.wallList.concat(this.state.boxList.concat(this.props.targetList));
         allObjects.push(this.state.player);        
         var maxX = (this.state.editMode? 20: (Math.max.apply(null, _.pluck(allObjects, 'x')) + 1));
         var maxY = (this.state.editMode? 20: (Math.max.apply(null, _.pluck(allObjects, 'y')) + 1));
@@ -242,11 +243,11 @@ var Level = React.createClass({
     canMove: function(item, axis, dir){
         var nextPos = $.extend({}, item);
         nextPos[axis] += dir;
-        if (typeof _.findWhere(this.props.wallList, nextPos) !== 'undefined'){ // wall in the way
+        if (typeof _.findWhere(this.state.wallList, nextPos) !== 'undefined'){ // wall in the way
             return false;
         } else if (typeof _.findWhere(this.state.boxList, nextPos) !== 'undefined'){ // box in the way
             nextPos[axis] += dir;
-            return (typeof _.findWhere(this.state.boxList.concat(this.props.wallList), nextPos) === 'undefined'); // return true if nothing is in the way of the box in the way (it can be pushed)
+            return (typeof _.findWhere(this.state.boxList.concat(this.state.wallList), nextPos) === 'undefined'); // return true if nothing is in the way of the box in the way (it can be pushed)
         } else {
             return true;
         }        
@@ -343,40 +344,31 @@ var Level = React.createClass({
     handleEditSectorClick: function(e){
         console.log(e);
         var self = this;
-        switch (this.state.editMode){
-            case 'Box':
-                var newBoxList = $.extend(true, [], this.state.boxList);                 
-                if (typeof _.findWhere(newBoxList, e) != 'undefined'){
-                    this.setState({ boxList: _.reject(
-                        newBoxList,
-                        function(box){
-                            return (box.x==e.x && box.y==e.y);
-                        })
-                    });
-                } else {
-                    newBoxList.push({x: e.x, y: e.y });
-                    this.setState({ boxList: newBoxList });
+        var newBoxList = $.extend(true, [], this.state.boxList);
+        var newWallList = $.extend(true, [], this.state.wallList);
+        //var newBoxList = $.extend(true, [], this.state.boxList);
+
+        if (typeof _.findWhere(newBoxList, e) != 'undefined'){
+            newBoxList = _.reject(
+                newBoxList,
+                function(box){
+                    return (box.x==e.x && box.y==e.y);
                 }
-                break;
-            case 'Target':
-                break;
-            case 'Player':
-                this.setState({ player: { x: e.x, y: e.y }});
-                break;
-            case true: case 'Wall':
-                /*var newWallList = $.extend(true, [], this.props.wallList);                 
-                if (typeof _.findWhere(newWallList, e) != 'undefined'){
-                    this.setState({ wallList: _.reject(
-                        newBoxList,
-                        function(box){
-                            return (box.x==e.x && box.y==e.y);
-                        })
-                    });
-                } else {
-                    newBoxList.push({x: e.x, y: e.y });
-                    this.setState({ boxList: newBoxList });
-                }*/
-                break;
+            );
+            newWallList.push(e);
+            this.setState({ boxList: newBoxList, wallList: newWallList });
+        } else if (typeof _.findWhere(newWallList, e) != 'undefined'){
+            newWallList = _.reject(
+                newWallList,
+                function(wall){
+                    return (wall.x==e.x && wall.y==e.y);
+                }
+            );
+            //newWallList.push({x: e.x, y: e.y });
+            this.setState({ wallList: newWallList });
+        } else {
+            newBoxList.push(e);
+            this.setState({ boxList: newBoxList });
         }
     }
 });
