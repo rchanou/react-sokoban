@@ -20,14 +20,14 @@ mongodb.MongoClient.connect(MONGOLAB_URI, function(err, db){
 	
 	app.get('/levels', function(req, res){
 		res.setHeader('Content-Type', 'application/json');
-		levels.find().toArray(function(err, docs){
+		levels.find().sort({ _id: 1 }).toArray(function(err, docs){
 			res.send(JSON.stringify(docs));
 		});
 	});
 	
 	app.get('/level', function(req, res){
 	    res.setHeader('Content-Type', 'application/json');
-		levels.find(ObjectID(req.query.id)).toArray(function(err, docs){
+		levels.find(ObjectID(req.query.id)).sort({ _id: 1 }).toArray(function(err, docs){
 			res.send(JSON.stringify(docs[0]));
 		});	
 	});
@@ -42,7 +42,7 @@ mongodb.MongoClient.connect(MONGOLAB_URI, function(err, db){
 			function(err, result, details){
 				if (err) throw err;
 				console.log(details);
-				levels.find().toArray(function(err, docs){
+				levels.find().sort({ _id: 1 }).toArray(function(err, docs){
 					if (err) throw err;
 					res.status(201).send(JSON.stringify(docs));
 					//res.send(JSON.stringify(docs));
