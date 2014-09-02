@@ -464,7 +464,7 @@ var EditSector = React.createClass({
     },
     render: function(){
         var k = this.props.scale;
-        return <rect x={this.props.x*k} y={this.props.y*k} width={k} height={k} key={'edit.'+this.props.x+'.'+this.props.y} stroke='grey' fillOpacity={0}
+        return <rect x={this.props.x*k} y={this.props.y*k} width={k} height={k} key={'edit.'+this.props.x+'.'+this.props.y} stroke='grey' fillOpacity={0} className='edit'
                 onClick={this.handleClick} onContextMenu={this.handleContextMenu} />;
     },
     handleClick: function(){
