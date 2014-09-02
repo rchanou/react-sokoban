@@ -3,34 +3,6 @@
 // TODO: Refactor player and box to own React components?
 
 var Game = React.createClass({
-    getDefaultProps: function(){
-        return { levelMaps: [
-            [' xxxxxx ',
-             ' x   px ',
-             ' x b  x ',
-             ' x   tx ',
-             ' xxxxxx '],
-             
-            [' xxxx   ',
-             ' x tx   ',
-             ' x  xxx ',
-             ' x p  x ',
-             ' x* b x ',
-             ' x  xxx ',
-             ' x  x   ',
-             ' xxxx   '],
-             
-            [' xxxxxxxx   ',
-             ' x p x  x   ',
-             ' x      x   ',
-             ' x      x   ',
-             ' xxxxxb x   ',
-             '     x  xxx ',
-             '     xb ttx ',
-             '     x  xxx ',
-             '     xxxx   ']
-        ]};
-    },
     getInitialState: function(){
         return { currentLevel: 0,
             levels: [{ initialPlayer: {x:0, y: 0}, initialBoxList:[], initialTargetList: [], initialWallList: [] }]
@@ -69,36 +41,15 @@ var Game = React.createClass({
             return Level(props);
         }
         var rawProps = this.state.levels[this.state.currentLevel];
-        //var props = {};
-        //props.initialPlayer = {x: parseInt(rawProps.initialPlayer.x), y: parseInt(rawProps.initialPlayer.y) };
-
-        //props.initialPlayer.y = parseInt(rawProps.initialPlayer.y);
-
-        //props.key = Math.random();
-
-        /*for (var propName in props){
-            console.log(propName);
-            if(_.isArray(props[propName])){
-                props[propName].forEach(function(item){
-                    item = { x:parseInt(item.x), y: parseInt(item.y) };
-                });
-            }
-        }*/
 
         return <Level initialPlayer={{x: parseInt(rawProps.initialPlayer.x), y: parseInt(rawProps.initialPlayer.y) }}
-            initialBoxList={this.parseCoordsToInts(rawProps.initialBoxList)}
-            initialTargetList={this.parseCoordsToInts(rawProps.initialTargetList)}
-            initialWallList={this.parseCoordsToInts(rawProps.initialWallList)}
+            initialBoxList={rawProps.initialBoxList}
+            initialTargetList={rawProps.initialTargetList}
+            initialWallList={rawProps.initialWallList}
             key={Math.random()} _id={rawProps._id}
             onLevelSave={this.handleLevelSave} />
     },
-    parseCoordsToInts: function(list){
-        return list.map(function(coord){
-            return { x: parseInt(coord.x), y: parseInt(coord.y) };
-        });
-    },
     render: function(){
-        console.log(this.state);
         return (
             <div>
                 <h3>Level {this.state.currentLevel + 1}</h3>
@@ -110,15 +61,11 @@ var Game = React.createClass({
         );
     },
     componentWillMount: function(){
-        /*$.get('/levels', function(resp){
-            this.setState({ levels: resp });
-        }.bind(this));*/
         $.ajax({
             url: '/levels',
             dataType: 'json',
             success: function(resp){
                 this.setState({ levels: resp });
-                //this.setState({ levels: this.props.levelMaps.concat(resp) });
             }.bind(this)
         });
     },
@@ -129,11 +76,6 @@ var Game = React.createClass({
         this.setState({ currentLevel: this.state.currentLevel + 1 });
     },
     createLevel: function(){
-        /*var newLevels = this.state.levels;
-        newLevels.push({ initialPlayer: { x:3, y: 3}, initialBoxList: [], initialTargetList: [], initialWallList: [] });
-        var newLevelIndex = newLevels.length - 1;
-        this.setState({ levels: newLevels, currentLevel: newLevelIndex });*/
-
         var body = {
             _id: '000000000000',
             level: {
@@ -194,7 +136,6 @@ var Level = React.createClass({
         }.bind(this));
     },
     render: function(){
-        console.log(this.props);
         var k = this.props.scale;
         var editGrid = [];
         if (this.state.editMode){
@@ -253,7 +194,7 @@ var Level = React.createClass({
                 </svg><br/>
                 {this.state.editMode?
                 <span>
-                    'Left-click to change tile. Right-click to place player.'
+                    Left-click to change tile. Right-click to place player.
                     <button onClick={this.handleSaveClick}>Save Level</button>
                     {this.props._id == '000000000000'? '': <button onClick={this.handleDeleteClick}>Delete Level</button>}
                 </span>
@@ -450,7 +391,6 @@ var Level = React.createClass({
                     }
                 );
                 this.setState({ boxList: newBoxList });
-                //newBoxList.push(e);
             }
         } else if (typeof _.findWhere(newTargetList, e) != 'undefined'){            
             newTargetList = _.reject(
