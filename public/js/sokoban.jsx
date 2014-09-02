@@ -127,11 +127,11 @@ var Level = React.createClass({
             targetList: $.extend(true, [], this.props.initialTargetList),
             boxList: $.extend(true, [], this.props.initialBoxList), // deep clone array of objects to avoid changing initial props
             moves: 0,
-            editMode: (this.props.initialTargetList.length == 0)
+            editMode: (this.props.initialTargetList.length == 0 || this.props.initialTargetList.length > this.props.initialBoxList.length)
         }; 
     },
     getVictoryStatus: function(){ // true when there is a box at every target
-        return !this.state.editMode && _.every(this.state.targetList, function(target){
+        return !this.state.editMode && this.checkValidLevel() && _.every(this.state.targetList, function(target){
             return (typeof _.findWhere(this.state.boxList, target) !== 'undefined');           
         }.bind(this));
     },
@@ -202,7 +202,7 @@ var Level = React.createClass({
                     <button onClick={this.handleUndoClick} disabled={this.prevStates.length == 0 || this.state.moves == 0}>Undo</button>
                     <button onClick={this.handleResetClick} disabled={this.state.moves == 0}>Reset</button>
                 </span>}
-                <button onClick={this.handleEditClick}>{this.state.editMode? 'Exit Edit Mode': 'Edit Level!'}</button>
+                <button onClick={this.handleEditClick} disabled={!this.checkValidLevel()} >{this.state.editMode? 'Exit Edit Mode': 'Edit Level!'}</button>
                 <h2 style={{color: 'RoyalBlue'}}>{this.getVictoryStatus()? 'Victory!': ''}</h2>
             </div>
         );
@@ -237,6 +237,9 @@ var Level = React.createClass({
                 }                    
             }
         }.bind(this);
+    },
+    checkValidLevel: function(){
+        return this.state.targetList.length > 0 && this.state.boxList.length >= this.state.targetList.length;
     },
     moveAndUpdateState: function(axis, dir){
         if (this.state.editMode){
@@ -359,10 +362,14 @@ var Level = React.createClass({
         }.bind(this));
     },
     handleEditClick: function(){
-        var editState = this.getInitialState();
-        editState.editMode = !this.state.editMode;
+        var editState = this.state;
+        if (editState.editMode){
+            if (confirm('Save level?')){
+                this.handleSaveClick();
+            }
+        }
+        editState.editMode = !editState.editMode;
         this.setState(editState);
-        //this.setState({ editMode: !this.state.editMode, moves: 0 });
     },
     handleEditSectorClick: function(e){
         var self = this;
