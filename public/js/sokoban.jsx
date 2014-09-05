@@ -28,7 +28,6 @@ var Game = React.createClass({
             fontSize: '20px', 
             cursor: 'pointer',
             display: 'inline-block',
-            padding: '5px',
             overflow: 'hidden'
         }
 
