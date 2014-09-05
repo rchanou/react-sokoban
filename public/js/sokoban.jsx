@@ -51,7 +51,7 @@ var Game = React.createClass({
             <div>
                 <div style={navStyle}>
                     <h1 style={headStyle}>React Sokoban!</h1>
-                    <h4 style={subHeadStyle}>Puzzles by <a href='http://www.onlinespiele-sammlung.de/sokoban/sokobangames/skinner/'>David W. Skinner</a></h4>
+                    <h4 style={subHeadStyle}>With Puzzles by <a href='http://www.onlinespiele-sammlung.de/sokoban/sokobangames/skinner/'>David W. Skinner</a></h4>
                 </div><br/>
                 <div style={{textAlign: 'center'}}>
                     {this.state.currentLevel == null? '':<button className='nav-button' onClick={this.handleChooseClick}>Choose a Level</button>}
