@@ -3,6 +3,7 @@
 	src: url("ChunkFive.otf") format("opentype");
 	src: font-url("ChunkFive.otf");
 	src: font_url("ChunkFive.otf");
+	src: asset-url("ChunkFive.otf");
 }
 
 @-webkit-keyframes webkitflashingStroke {

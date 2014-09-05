@@ -3,10 +3,12 @@ var bodyParser = require('body-parser');
 var ejs = require('ejs');
 var mongodb = require('mongodb');
 var ObjectID = mongodb.ObjectID;
+process.env.PWD = process.cwd();
 
 var app = express();
 app.set('port', (process.env.PORT || 5000));
 app.use(express.static(__dirname + '/public'));
+app.use(express.static(process.env.PWD + '/public'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 app.engine('html', ejs.renderFile);
