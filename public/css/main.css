@@ -43,7 +43,7 @@
 }
 
 body {
-    font-family: ChunkFive, sans-serif;
+    font-family: ChunkFive, Rockwell, sans-serif;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -khtml-user-select: none;
@@ -55,7 +55,7 @@ body {
 }
 
 button {
-    font-family: ChunkFive, sans-serif;
+    font-family: ChunkFive, Rockwell, sans-serif;
 	border-style: groove;
 	//border-color: hsl(180,50%,85%);
 }
