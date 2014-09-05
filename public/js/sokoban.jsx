@@ -163,7 +163,7 @@ var Level = React.createClass({
 
         // create edit grid if edit mode
         var editGrid = [];
-        if (this.state.editMode){
+        if (this.state.editMode && !this.props.preview){
             for (var i = 0; i < 20; i ++){
                 for (var j = 0; j < 20; j++){
                     editGrid.push(<EditSector x={i} y={j} scale={k} key={'edit.'+i+'.'+j}
@@ -209,8 +209,8 @@ var Level = React.createClass({
         // get svg dimensions that will fit all objects
         var allObjects = this.state.wallList.concat(this.state.boxList.concat(this.state.targetList));
         allObjects.push(this.state.player);        
-        var maxX = (this.state.editMode? 20: (Math.max.apply(null, _.pluck(allObjects, 'x')) + 1));
-        var maxY = (this.state.editMode? 20: (Math.max.apply(null, _.pluck(allObjects, 'y')) + 1));
+        var maxX = (this.state.editMode && !this.props.preview? 20: (Math.max.apply(null, _.pluck(allObjects, 'x')) + 1));
+        var maxY = (this.state.editMode && !this.props.preview? 20: (Math.max.apply(null, _.pluck(allObjects, 'y')) + 1));
     
         // if preview, only render map and make entire svg clickable
         if (this.props.preview){
@@ -233,7 +233,7 @@ var Level = React.createClass({
                     <button onClick={this.handleResetClick} disabled={this.state.moves == 0}>Reset</button>
                 </span>}
                 <button onClick={this.handleEditClick} disabled={!this.checkValidLevel()} >{this.state.editMode? 'Exit Edit Mode': 'Edit Level!'}</button>
-                <span ref='savedMsg'></span>
+                <span ref='savedMsg' style={{color: 'hsl(117,50%,50%)'}}></span>
                 <br/>
                 <svg width={maxX*k} height={maxY*k}>
                     {walls}{targets}{boxes}{player}{editGrid}                    
