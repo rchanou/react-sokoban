@@ -1,3 +1,8 @@
+@font-face {
+	font-family: ChunkFive;
+	src: url("ChunkFive.otf") format("opentype");
+}
+
 @-webkit-keyframes webkitflashingStroke {
   from {
     stroke-opacity: 1;
@@ -38,16 +43,44 @@
 }
 
 body {
-    font-family: sans-serif;
+    font-family: ChunkFive, sans-serif;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -khtml-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+	margin: 0px;
+	text-align: center;
+}
+
+button {
+    font-family: ChunkFive, sans-serif;
+	border-style: groove;
+	//border-color: hsl(180,50%,85%);
+}
+
+button:hover {
+	background-color: hsl(240,50%,85%);
+	border-color: hsl(180,50%,85%);
 }
 
 .edit:hover {
 	stroke: purple;
 	stroke-width: 2px;
+}
+
+.nav-button{
+	background-color: hsl(110,0%,85%);
+	font-size: 20px;
+	display: inline-block;
+	padding: 5px;
+}
+
+.preview {
+	margin: 5px;
+}
+
+.preview:hover {
+	background-color: hsl(240,50%,85%);
 }

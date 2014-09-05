@@ -4,59 +4,64 @@
 
 var Game = React.createClass({
     getInitialState: function(){
-        return { currentLevel: 0,
+        return {
+            currentLevel: null,
             levels: [{ initialPlayer: {x:0, y: 0}, initialBoxList:[], initialTargetList: [], initialWallList: [] }]
         };
     },
-    loadCurrentLevel: function(){ // convert level map to Level React component
-        if (_.isArray(this.state.levels[this.state.currentLevel])){
-            var props = { initialWallList: [], initialTargetList: [], initialBoxList: [], initialPlayer: {}, key: this.state.currentLevel };
-            var currentLevelMap = this.state.levels[this.state.currentLevel];
-            currentLevelMap.forEach(function(rowString, i){
-                for (var j = 0; j < rowString.length; j++){
-                    switch (rowString[j].toLowerCase()){
-                        case 'p': { // player
-                            props.initialPlayer = { y: i, x: j };
-                            break;
-                        }
-                        case 't': { // target
-                            props.initialTargetList.push({y: i, x: j});
-                            break;
-                        }
-                        case 'b': { // box
-                            props.initialBoxList.push({y: i, x: j});
-                            break;
-                        }
-                        case 'x': case 'w': { // wall
-                            props.initialWallList.push({y: i, x: j});
-                            break;
-                        }
-                        case '*': { // both target and box on same spot
-                            props.initialTargetList.push({y: i, x: j});
-                            props.initialBoxList.push({y: i, x: j});
-                        }                    
-                    }
-                }
-            });
-            return Level(props);
-        }
-        var rawProps = this.state.levels[this.state.currentLevel];
-
-        return <Level initialPlayer={{x: parseInt(rawProps.initialPlayer.x), y: parseInt(rawProps.initialPlayer.y) }}
-            initialBoxList={rawProps.initialBoxList}
-            initialTargetList={rawProps.initialTargetList}
-            initialWallList={rawProps.initialWallList}
-            key={Math.random()} _id={rawProps._id}
-            onLevelSave={this.handleLevelSave} />
+    loadLevel: function(level){ // convert level map to Level React component
+        return <Level initialPlayer={{x: parseInt(level.initialPlayer.x), y: parseInt(level.initialPlayer.y) }}
+            initialBoxList={level.initialBoxList}
+            initialTargetList={level.initialTargetList}
+            initialWallList={level.initialWallList}
+            key={level._id} _id={level._id} preview={level.preview} scale={level.scale}
+            onLevelSave={this.handleLevelSave} onPreviewClick={this.handlePreviewClick} />;
     },
     render: function(){
+        var headStyle = {fontSize: 50, color: 'hsl(0,0%,20%)', textAlign: 'center', padding: 0, overflow: 'hidden' };
+        var subHeadStyle = $.extend({}, headStyle, {fontSize: 20});
+
+
+        var navStyle = {
+            backgroundColor: 'hsl(110,50%,85%)',
+            width: '100%',
+            fontSize: '20px', 
+            cursor: 'pointer',
+            display: 'inline-block',
+            padding: '5px',
+            overflow: 'hidden'
+        }
+
+        var navButtonStyle = $.extend({}, navStyle, { display: 'inline-block' });
+        //navButtonStyle.float = 'left';
+
+        var main;
+        if (this.state.currentLevel == null){
+            previews = $.extend(true, [], this.state.levels).map(function(level, i){
+                level.preview = true;
+                level.scale = 20;
+                return this.loadLevel(level);
+            }.bind(this));
+            main = <div ref='preview'>{previews}</div>;
+        } else {
+            main = this.loadLevel(this.state.levels[this.state.currentLevel]);
+        }
+
         return (
             <div>
-                <h3>Level {this.state.currentLevel + 1}</h3>
-                <button onClick={this.prevLevel} disabled={this.state.currentLevel <= 0}>Previous Level</button>
-                <button onClick={this.nextLevel} disabled={this.state.currentLevel >= this.state.levels.length - 1}>Next Level</button>
-                <button onClick={this.createLevel}>Create New Level</button>
-                {this.loadCurrentLevel()}
+                <div style={navStyle}>
+                    <h1 style={headStyle}>React Sokoban!</h1>
+                    <h4 style={subHeadStyle}>Puzzles by <a href='http://www.onlinespiele-sammlung.de/sokoban/sokobangames/skinner/'>David W. Skinner</a></h4>
+                </div><br/>
+                <div style={{textAlign: 'center'}}>
+                    {this.state.currentLevel == null? '':<button className='nav-button' onClick={this.handleChooseClick}>Choose a Level</button>}
+                    <button className='nav-button' onClick={this.createLevel}>Create a New Level</button>
+                </div>
+                <br/>
+                <div style={{display:'inline-block'}}>
+                    {this.state.currentLevel == null?'':<h3>Level {this.state.currentLevel + 1}</h3>}
+                    {main}
+                </div>
             </div>
         );
     },
@@ -68,6 +73,13 @@ var Game = React.createClass({
                 this.setState({ levels: resp });
             }.bind(this)
         });
+    },
+    componentDidMount: function(){
+        /*if (this.refs.preview){
+            $(window).resize(function(){
+                $(this.refs.preview.getDOMNode()).width($(window).width() - 100);                
+            }.bind(this));
+        }*/
     },
     prevLevel: function(){
         this.setState({ currentLevel: this.state.currentLevel - 1 });
@@ -102,8 +114,17 @@ var Game = React.createClass({
             newLevelIndex = levels.length - 1;
         }
         this.setState({ currentLevel: newLevelIndex, levels: levels });
+    },
+    handleChooseClick: function(){
+        this.setState({ currentLevel: null });
+    },
+    handlePreviewClick: function(e){
+        var chosenLevel = _.chain(this.state.levels).pluck('_id').indexOf(e._id).value();
+        this.setState({ currentLevel: chosenLevel });
     }
 });
+
+
 
 var Level = React.createClass({
     prevStates: [], // array of past states to allow Undo
@@ -117,7 +138,8 @@ var Level = React.createClass({
             scale: 40,
             stepSize: 6,
             _id: '000000000000',
-            onLevelSave: function(){}
+            preview: false,
+            onLevelSave: function(){}, onPreviewClick: function(){}
         };
     },
     getInitialState: function(){
@@ -137,6 +159,9 @@ var Level = React.createClass({
     },
     render: function(){
         var k = this.props.scale;
+
+
+        // create edit grid if edit mode
         var editGrid = [];
         if (this.state.editMode){
             for (var i = 0; i < 20; i ++){
@@ -147,6 +172,7 @@ var Level = React.createClass({
             }
         }
 
+        // create all game object elements
         var walls = this.state.wallList.map(function(wall, i){
             return <rect x={wall.x*k} y={wall.y*k} width={k} height={k} fill='silver' stroke='grey' key={'wall-'+i} />;        
         });
@@ -185,24 +211,32 @@ var Level = React.createClass({
         allObjects.push(this.state.player);        
         var maxX = (this.state.editMode? 20: (Math.max.apply(null, _.pluck(allObjects, 'x')) + 1));
         var maxY = (this.state.editMode? 20: (Math.max.apply(null, _.pluck(allObjects, 'y')) + 1));
-        
-        // time to render!
+    
+        // if preview, only render map and make entire svg clickable
+        if (this.props.preview){
+            return <svg width={maxX*k} height={maxY*k} style={{borderColor: 'grey', borderWidth: 2}} onClick={this.handlePreviewClick} className='preview'>
+                    {walls}{targets}{boxes}{player}                   
+                </svg>;
+        }
+
+        // render all the things!
         return (
-            <div>
-                <svg width={maxX*k} height={maxY*k}>
-                    {walls}{targets}{boxes}{player}{editGrid}                    
-                </svg><br/>
+            <div width='100%' style={{textAlign: 'center'}}>
                 {this.state.editMode?
                 <span>
                     Left-click to change tile. Right-click to place player.
                     <button onClick={this.handleSaveClick}>Save Level</button>
                     {this.props._id == '000000000000'? '': <button onClick={this.handleDeleteClick}>Delete Level</button>}
                 </span>
-                :<span>Moves: {this.state.moves}
+                :<span>Moves: {this.state.moves}<br/>
                     <button onClick={this.handleUndoClick} disabled={this.prevStates.length == 0 || this.state.moves == 0}>Undo</button>
                     <button onClick={this.handleResetClick} disabled={this.state.moves == 0}>Reset</button>
                 </span>}
                 <button onClick={this.handleEditClick} disabled={!this.checkValidLevel()} >{this.state.editMode? 'Exit Edit Mode': 'Edit Level!'}</button>
+                <br/>
+                <svg width={maxX*k} height={maxY*k}>
+                    {walls}{targets}{boxes}{player}{editGrid}                    
+                </svg><br/>
                 <h2 style={{color: 'RoyalBlue'}}>{this.getVictoryStatus()? 'Victory!': ''}</h2>
             </div>
         );
@@ -213,7 +247,7 @@ var Level = React.createClass({
     componentDidMount: function(){
         document.onkeydown = function(e){
             // ignore key presses if level was won or animation is running
-            if (this.getVictoryStatus() || this.animHandle != null){
+            if (this.props.preview || this.getVictoryStatus() || this.animHandle != null){
                 return;
             }
             
@@ -352,6 +386,9 @@ var Level = React.createClass({
             }.bind(this));
         }
     },
+    checkEditsMade: function(){
+        return this.state.editMode && !_.isEqual(_.omit(this.state, 'editMode'), _.omit(this.getInitialState(), 'editMode'));
+    },
     handleResetClick: function(){
         this.prevStates = [];
         this.setState($.extend(true, {}, this.getInitialState()));
@@ -362,14 +399,29 @@ var Level = React.createClass({
         }.bind(this));
     },
     handleEditClick: function(){
-        var editState = this.state;
+        var editState = $.extend(true, {}, this.state);
         if (editState.editMode){
-            if (confirm('Save level?')){
-                this.handleSaveClick();
+            var confirmContinue = false;
+            if (this.checkEditsMade()){
+                confirmContinue = confirm('Changes were not saved. Are you sure you want to exit?');
+            } else {
+                confirmContinue = true;
             }
+            if (confirmContinue){
+                this.setState(this.getInitialState());
+            }
+            /*if (saveConfirmed){
+                this.setState(editState, function(){
+                        this.handleSaveClick();
+                }.bind(this));
+            } else {
+                this.setState(this.getInitialState());
+            }*/
+        } else {
+            editState = $.extend(true, {}, this.getInitialState());
+            editState.editMode = !editState.editMode;
+            this.setState(editState);
         }
-        editState.editMode = !editState.editMode;
-        this.setState(editState);
     },
     handleEditSectorClick: function(e){
         var self = this;
@@ -455,6 +507,9 @@ var Level = React.createClass({
                 console.log(err);
             }
         });
+    },
+    handlePreviewClick: function(){
+        this.props.onPreviewClick({ _id: this.props._id });
     }
 });
 
