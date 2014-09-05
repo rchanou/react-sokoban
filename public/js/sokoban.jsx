@@ -233,6 +233,7 @@ var Level = React.createClass({
                     <button onClick={this.handleResetClick} disabled={this.state.moves == 0}>Reset</button>
                 </span>}
                 <button onClick={this.handleEditClick} disabled={!this.checkValidLevel()} >{this.state.editMode? 'Exit Edit Mode': 'Edit Level!'}</button>
+                <span ref='savedMsg'></span>
                 <br/>
                 <svg width={maxX*k} height={maxY*k}>
                     {walls}{targets}{boxes}{player}{editGrid}                    
@@ -484,9 +485,17 @@ var Level = React.createClass({
             data: JSON.stringify(body),
             success: function(resp){
                 this.props.onLevelSave(resp);
+                var savedMsgEl = this.refs.savedMsg.getDOMNode();
+                if ($(savedMsgEl).text() == ''){
+                    $(savedMsgEl).text('Level saved!');
+                    setTimeout(function(){
+                        $(savedMsgEl).text('');
+                    }, 2000);                    
+                }
             }.bind(this),
             error: function(xhr, status, err){
                 console.log(err);
+                alert('Error saving level!');
             }
         });
     },
